@@ -1,7 +1,19 @@
+# Possible to-dos
+# 1. Record cell numbers of each type
+# 2. Record mean and std for each TF (so a better assessment can be made on cutoff)
+# 3. Considerations on exact method of normalisation (expect this to have a small impact)
+
 # Load needed packages
 library(dplyr)
 library(tidyr)
 library(tibble)
+
+# Set working directory (can be done manually or with code)
+if (getwd() != `DESIRED PATH`) {
+  setwd(`DESIRED PATH`)
+}
+
+normalisation_method <- menu(c("L1 (Manhattan)", "L2 (Euclidean)"), title="Choose normalisation methodology:")
 
 # Load annotation file needed for the translation from codes to cell types
 FACS_annotation <- read.csv2("00_facs_raw_data/annotations_FACS.csv", sep = ",") %>% 
@@ -54,40 +66,43 @@ non_tf_names <- setdiff(colnames(TF_array_filtered),
 tf_names <- intersect(colnames(TF_array_filtered),
                       TF_list)
 
-# Extract columns (TFs) which have sufficiently large mean and variance
+# Now filter TFs to have sufficient mean and variance
+TF_array_filtered <- bind_cols(
+  TF_array_filtered %>% 
+    select(all_of(non_tf_names)),
+  TF_array_filtered %>% 
+    select(all_of(tf_names)) %>% 
+    select(where(~ mean(., na.rm = TRUE) > log(4) & 
+                   sd(., na.rm = TRUE)   > log(4)))
+)
 
-
-
-
-
-
-
+# Update TF names as now many have been filtered/removed
+tf_names_filtered <- intersect(colnames(TF_array_filtered),
+                               tf_names)
 
 # Average over cell types
 TF_averaged <- TF_array_filtered %>% 
   select(append(c("cell_ontology_class"), 
-                tf_names)) %>% 
+                tf_names_filtered)) %>% 
   group_by(cell_ontology_class) %>% 
-  summarise(across(tf_names, mean, na.rm = TRUE)) %>% 
+  summarise(across(tf_names_filtered, mean, na.rm = TRUE)) %>% 
   column_to_rownames(var = "cell_ontology_class") %>% 
   t() %>% 
   as.data.frame() %>% 
-  rownames_to_column(var = "tf") 
+  rownames_to_column(var = "tf")
 
-a <- TF_array_filtered %>% 
-  mutate(across(where(is.numeric), ~ log1p(.))) %>% 
-  
+# Normalise averaged data - this is Xi (or at least the internal data is!)
+TF_normalised <- TF_averaged %>% 
+  column_to_rownames(var = "tf") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var = "cell_ontology_class") %>% 
+  mutate(across(all_of(tf_names_filtered), 
+                if (normalisation_method == 1) {
+                  ~ . / sum(., na.rm = TRUE)
+                } else {
+                  ~ . / sqrt(sum(. ^ 2, na.rm = TRUE))
+                }))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+# Write Xi to a CSV to be saved and potentially shared
+write.csv(TF_normalised, "FACS_Xi_matrix.csv", sep = ",")
