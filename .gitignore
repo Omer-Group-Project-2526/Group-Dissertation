@@ -1,0 +1,6 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+0. Data Preparation/00_facs_raw_data/*
+0. Data Preparation/01_droplet_raw_data/*
