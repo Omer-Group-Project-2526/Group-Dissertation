@@ -1,0 +1,19 @@
+[build-system]
+# List of packages to build project
+requires = []
+# To build backend of this project
+build-backend = ""
+
+[project]
+name = "enhancernet"
+version = "0.1.0"
+description = ""
+readme = "README.md"
+requires-python = ""
+authors = [
+  {name = "Bob Scott", email = "bob.scott25@imperial.ac.uk"},
+  {name = "James Johnson", email = "james.johnson25@imperial.ac.uk"},
+  {name = "Krishnan Tewari", email = "krishnan.tewari25@imperial.ac.uk"}
+]
+# List of runtime dependencies to function
+dependencies = []
